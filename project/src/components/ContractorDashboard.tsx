@@ -64,7 +64,7 @@ export const ContractorDashboard: React.FC<ContractorDashboardProps> = ({ user, 
 
     setWorkers(allWorkers);
     setMyWorkPosts(allWorkPosts.filter((post: WorkPost) => post.contractorId === user.id));
-    setConnectionRequests(allRequests.filter((r: ConnectionRequest) => 
+    setConnectionRequests(allRequests.filter((r: ConnectionRequest) =>
       r.receiverId === user.id || r.senderId === user.id
     ));
     setChats(allChats);
@@ -75,7 +75,7 @@ export const ContractorDashboard: React.FC<ContractorDashboardProps> = ({ user, 
   const checkForNewMessages = () => {
     const allChats = JSON.parse(localStorage.getItem('chats') || '{}');
     calculateUnreadMessages(allChats);
-    
+
     // Check for new messages and show notifications
     Object.keys(allChats).forEach(chatId => {
       const messages = allChats[chatId];
@@ -90,7 +90,7 @@ export const ContractorDashboard: React.FC<ContractorDashboardProps> = ({ user, 
     let count = 0;
     Object.keys(allChats).forEach(chatId => {
       const messages = allChats[chatId];
-      count += messages.filter((msg: ChatMessage) => 
+      count += messages.filter((msg: ChatMessage) =>
         msg.senderId !== user.id && !msg.read
       ).length;
     });
@@ -117,25 +117,25 @@ export const ContractorDashboard: React.FC<ContractorDashboardProps> = ({ user, 
     // Play notification sound (optional)
     try {
       const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
-      audio.play().catch(() => {}); // Ignore errors if audio fails
-    } catch (e) {}
+      audio.play().catch(() => { }); // Ignore errors if audio fails
+    } catch (e) { }
   };
 
   const filteredWorkers = workers.filter(worker => {
-    const matchesQuery = !searchQuery || 
+    const matchesQuery = !searchQuery ||
       worker.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       worker.skill.toLowerCase().includes(searchQuery.toLowerCase()) ||
       worker.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const matchesPincode = !searchPincode || worker.pincode.includes(searchPincode);
     const matchesExperience = !searchExperience || parseInt(worker.experience) >= parseInt(searchExperience);
     const matchesWage = !searchWageRange || checkWageRange(worker.expectedWage, searchWageRange);
-    
+
     return matchesQuery && matchesPincode && matchesExperience && matchesWage;
   });
 
   const handleContactWorker = (worker: any) => {
-    const existingRequest = connectionRequests.find(r => 
+    const existingRequest = connectionRequests.find(r =>
       r.receiverId === worker.userId && r.senderId === user.id && r.status === 'pending'
     );
 
@@ -181,7 +181,7 @@ export const ContractorDashboard: React.FC<ContractorDashboardProps> = ({ user, 
   };
 
   const sendEmailNotification = (recipient: any, type: string, data: any) => {
-    const timestamp = new Date().toLocaleString('en-IN', { 
+    const timestamp = new Date().toLocaleString('en-IN', {
       timeZone: 'Asia/Kolkata',
       dateStyle: 'medium',
       timeStyle: 'short'
@@ -228,7 +228,7 @@ Time: ${timestamp} IST`);
 
   const handleSaveWorker = (worker: any) => {
     const userSavedWorkers = JSON.parse(localStorage.getItem(`savedWorkers_${user.id}`) || '[]');
-    
+
     if (!userSavedWorkers.find((w: any) => w.id === worker.id)) {
       userSavedWorkers.push(worker);
       localStorage.setItem(`savedWorkers_${user.id}`, JSON.stringify(userSavedWorkers));
@@ -239,43 +239,50 @@ Time: ${timestamp} IST`);
     }
   };
 
-  const handleCreatePost = () => {
+  const handleCreatePost = async () => {
     if (!newPost.title || !newPost.workType || !newPost.pincode || !newPost.description || !newPost.budget) {
       alert('Please fill all required fields');
       return;
     }
 
-    const post: WorkPost = {
-      id: Date.now().toString(),
-      contractorId: user.id,
-      contractorName: user.name,
-      title: newPost.title,
-      workType: newPost.workType,
-      pincode: newPost.pincode,
-      description: newPost.description,
-      budget: newPost.budget,
-      startDate: newPost.startDate,
-      endDate: newPost.endDate,
-      createdAt: new Date().toISOString(),
-      status: 'active'
-    };
-
-    const allWorkPosts = JSON.parse(localStorage.getItem('workPosts') || '[]');
-    allWorkPosts.push(post);
-    localStorage.setItem('workPosts', JSON.stringify(allWorkPosts));
-
-    setNewPost({
-      title: '',
-      workType: '',
-      pincode: '',
-      description: '',
-      budget: '',
-      startDate: '',
-      endDate: ''
-    });
-    setIsCreatingPost(false);
-    loadData();
-    alert('Work post created successfully!');
+    try {
+      const token = localStorage.getItem('jwt_token');
+      const response = await fetch('/api/work-posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: newPost.title,
+          workType: newPost.workType,
+          pincode: newPost.pincode,
+          description: newPost.description,
+          budget: typeof newPost.budget === 'string' ? newPost.budget : `${newPost.budget.min} - ${newPost.budget.max}`,
+          startDate: newPost.startDate,
+          endDate: newPost.endDate
+        })
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.message || 'Failed to create work post');
+        return;
+      }
+      setNewPost({
+        title: '',
+        workType: '',
+        pincode: '',
+        description: '',
+        budget: '',
+        startDate: '',
+        endDate: ''
+      });
+      setIsCreatingPost(false);
+      loadData();
+      alert('Work post created successfully!');
+    } catch (err) {
+      alert('Error creating work post');
+    }
   };
 
   const handleEditPost = (post: WorkPost) => {
@@ -296,11 +303,11 @@ Time: ${timestamp} IST`);
     if (!editingPost) return;
 
     const allWorkPosts = JSON.parse(localStorage.getItem('workPosts') || '[]');
-    const updatedPosts = allWorkPosts.map((post: WorkPost) => 
+    const updatedPosts = allWorkPosts.map((post: WorkPost) =>
       post.id === editingPost.id ? { ...post, ...newPost } : post
     );
     localStorage.setItem('workPosts', JSON.stringify(updatedPosts));
-    
+
     setEditingPost(null);
     setIsCreatingPost(false);
     setNewPost({
@@ -328,7 +335,7 @@ Time: ${timestamp} IST`);
 
   const handleConnectionResponse = (requestId: string, response: 'accepted' | 'declined') => {
     const allRequests = JSON.parse(localStorage.getItem('connectionRequests') || '[]');
-    const updatedRequests = allRequests.map((r: ConnectionRequest) => 
+    const updatedRequests = allRequests.map((r: ConnectionRequest) =>
       r.id === requestId ? { ...r, status: response } : r
     );
     localStorage.setItem('connectionRequests', JSON.stringify(updatedRequests));
@@ -373,7 +380,7 @@ Time: ${timestamp} IST`);
   const markMessagesAsRead = (chatId: string) => {
     const allChats = JSON.parse(localStorage.getItem('chats') || '{}');
     if (allChats[chatId]) {
-      allChats[chatId] = allChats[chatId].map((msg: ChatMessage) => 
+      allChats[chatId] = allChats[chatId].map((msg: ChatMessage) =>
         msg.senderId !== user.id ? { ...msg, read: true } : msg
       );
       localStorage.setItem('chats', JSON.stringify(allChats));
@@ -387,7 +394,7 @@ Time: ${timestamp} IST`);
   };
 
   const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString('en-IN', { 
+    return new Date(timestamp).toLocaleString('en-IN', {
       timeZone: 'Asia/Kolkata',
       hour: '2-digit',
       minute: '2-digit',
@@ -423,7 +430,7 @@ Time: ${timestamp} IST`);
           <span>Filters</span>
         </button>
       </div>
-      
+
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
         <input
@@ -634,7 +641,7 @@ Time: ${timestamp} IST`);
               <input
                 type="text"
                 value={newPost.title}
-                onChange={(e) => setNewPost({...newPost, title: e.target.value})}
+                onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
                 placeholder="e.g. Plumbing Work Required"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -644,7 +651,7 @@ Time: ${timestamp} IST`);
               <input
                 type="text"
                 value={newPost.workType}
-                onChange={(e) => setNewPost({...newPost, workType: e.target.value})}
+                onChange={(e) => setNewPost({ ...newPost, workType: e.target.value })}
                 placeholder="e.g. Plumbing, Electrical, Carpentry"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -654,7 +661,7 @@ Time: ${timestamp} IST`);
               <input
                 type="text"
                 value={newPost.pincode}
-                onChange={(e) => setNewPost({...newPost, pincode: e.target.value})}
+                onChange={(e) => setNewPost({ ...newPost, pincode: e.target.value })}
                 placeholder="e.g. 400001"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -664,7 +671,7 @@ Time: ${timestamp} IST`);
               <input
                 type="text"
                 value={newPost.budget}
-                onChange={(e) => setNewPost({...newPost, budget: e.target.value})}
+                onChange={(e) => setNewPost({ ...newPost, budget: e.target.value })}
                 placeholder="e.g. ₹15,000 - ₹25,000"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -674,7 +681,7 @@ Time: ${timestamp} IST`);
               <input
                 type="date"
                 value={newPost.startDate}
-                onChange={(e) => setNewPost({...newPost, startDate: e.target.value})}
+                onChange={(e) => setNewPost({ ...newPost, startDate: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -683,7 +690,7 @@ Time: ${timestamp} IST`);
               <input
                 type="date"
                 value={newPost.endDate}
-                onChange={(e) => setNewPost({...newPost, endDate: e.target.value})}
+                onChange={(e) => setNewPost({ ...newPost, endDate: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -691,7 +698,7 @@ Time: ${timestamp} IST`);
               <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
               <textarea
                 value={newPost.description}
-                onChange={(e) => setNewPost({...newPost, description: e.target.value})}
+                onChange={(e) => setNewPost({ ...newPost, description: e.target.value })}
                 placeholder="Describe the work requirements, location details, and any specific requirements..."
                 rows={4}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -914,10 +921,10 @@ Time: ${timestamp} IST`);
           {getAcceptedConnections().map((connection) => {
             const chatId = `${connection.senderId}_${connection.receiverId}_${connection.workPostId || 'direct'}`;
             const otherPersonName = connection.senderId === user.id ? connection.receiverName : connection.senderName;
-            const unreadInChat = (chats[chatId] || []).filter((msg: ChatMessage) => 
+            const unreadInChat = (chats[chatId] || []).filter((msg: ChatMessage) =>
               msg.senderId !== user.id && !msg.read
             ).length;
-            
+
             return (
               <button
                 key={chatId}
@@ -925,9 +932,8 @@ Time: ${timestamp} IST`);
                   setActiveChat(chatId);
                   markMessagesAsRead(chatId);
                 }}
-                className={`w-full text-left p-3 rounded-md transition-colors relative ${
-                  activeChat === chatId ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100'
-                }`}
+                className={`w-full text-left p-3 rounded-md transition-colors relative ${activeChat === chatId ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100'
+                  }`}
               >
                 <div className="font-medium">{otherPersonName}</div>
                 <div className="text-sm text-gray-500">
@@ -949,13 +955,13 @@ Time: ${timestamp} IST`);
           <>
             <div className="p-4 border-b">
               <h3 className="font-semibold text-gray-800">
-                {getAcceptedConnections().find(c => 
+                {getAcceptedConnections().find(c =>
                   `${c.senderId}_${c.receiverId}_${c.workPostId || 'direct'}` === activeChat
-                )?.senderName === user.name ? 
-                  getAcceptedConnections().find(c => 
+                )?.senderName === user.name ?
+                  getAcceptedConnections().find(c =>
                     `${c.senderId}_${c.receiverId}_${c.workPostId || 'direct'}` === activeChat
                   )?.receiverName :
-                  getAcceptedConnections().find(c => 
+                  getAcceptedConnections().find(c =>
                     `${c.senderId}_${c.receiverId}_${c.workPostId || 'direct'}` === activeChat
                   )?.senderName
                 }
@@ -969,11 +975,10 @@ Time: ${timestamp} IST`);
                     className={`flex ${message.senderId === user.id ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                        message.senderId === user.id
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-200 text-gray-800'
-                      }`}
+                      className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${message.senderId === user.id
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-800'
+                        }`}
                     >
                       <p>{message.message}</p>
                       <p className="text-xs mt-1 opacity-75">
@@ -1018,7 +1023,7 @@ Time: ${timestamp} IST`);
   return (
     <div className="min-h-screen bg-gray-50">
       {renderNotifications()}
-      
+
       <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -1053,11 +1058,10 @@ Time: ${timestamp} IST`);
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center relative ${
-                    activeTab === id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center relative ${activeTab === id
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
                 >
                   <Icon className="w-4 h-4 mr-2" />
                   {label}

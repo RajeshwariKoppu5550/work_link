@@ -10,6 +10,7 @@ const chatsRoutes = require('./routes/chats');
 const savedJobsRoutes = require('./routes/savedJobs');
 const savedWorkersRoutes = require('./routes/savedWorkers');
 const connect = require('./connect');
+const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -20,6 +21,7 @@ const PORT = process.env.PORT || 5000;
 
 
 app.use(express.json());
+app.use(cors());
 
 // Routes
 app.use('/api/auth', authRoutes);

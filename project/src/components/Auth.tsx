@@ -83,17 +83,17 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         setError('Please enter your full name.');
         return false;
       }
-      
+
       if (!formData.confirmPassword) {
         setError('Please confirm your password.');
         return false;
       }
-      
+
       if (formData.password !== formData.confirmPassword) {
         setError('Passwords do not match.');
         return false;
       }
-      
+
       if (!validatePassword(formData.password)) {
         setError('Password must be at least 6 characters long.');
         return false;
@@ -103,105 +103,79 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     return true;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     setIsLoading(true);
-    
-    // Simulate API delay
-    setTimeout(() => {
+
+    try {
       if (isLogin) {
-        // Sign In Process
-        const existingUser = findUserByEmail(formData.email);
-        
-        if (!existingUser) {
-          setError('Invalid email. No account found with this email address.');
+        // Login API call
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          setError(data.message || 'Login failed');
           setIsLoading(false);
           return;
         }
-        
-        if (existingUser.password !== formData.password) {
-          setError('Invalid email or password.');
-          setIsLoading(false);
-          return;
-        }
-        
-        // Successful login
-        const user: User = {
-          id: existingUser.id,
-          email: existingUser.email,
-          name: existingUser.name,
-          type: existingUser.type,
-          profile: existingUser.profile
-        };
-        
-        setSuccess('Welcome back! Redirecting to your dashboard...');
-        
-        // Handle remember me
+        // Save JWT
+        localStorage.setItem('jwt_token', data.token);
+        // Save remember me
         if (rememberMe) {
           localStorage.setItem('worklink_remember', 'true');
         } else {
           localStorage.removeItem('worklink_remember');
         }
-        
+        setSuccess('Welcome back! Redirecting to your dashboard...');
         setTimeout(() => {
-          onLogin(user);
+          onLogin({
+            id: data.user._id,
+            email: data.user.email,
+            name: data.user.name,
+            type: data.user.role,
+            profile: data.user.profile
+          });
         }, 1000);
-        
       } else {
-        // Sign Up Process
-        const existingUser = findUserByEmail(formData.email);
-        
-        if (existingUser) {
-          setError('This email is already registered. Please sign in.');
+        // Register API call
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            role: userType === UserType.CONTRACTOR ? 'contractor' : 'worker'
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          setError(data.message || 'Registration failed');
           setIsLoading(false);
           return;
         }
-        
-        // Create new user data
-        const newUserData = {
-          email: formData.email,
-          password: formData.password,
-          name: formData.name,
-          type: userType,
-          profile: userType === UserType.CONTRACTOR ? {
-            companyName: '',
-            companyType: '',
-            businessLocation: ''
-          } : {
-            skills: [],
-            experience: 0,
-            location: formData.location || '',
-            availability: 'Available'
-          }
-        };
-
-        // Save to database
-        const savedUser = createUser(newUserData);
-        
-        // Create user object for login
-        const user: User = {
-          id: savedUser.id,
-          email: savedUser.email,
-          name: savedUser.name,
-          type: savedUser.type,
-          profile: savedUser.profile
-        };
-
-        setSuccess('Account created successfully! Redirecting to your dashboard...');
+        setSuccess('Account created successfully! Please sign in.');
         setTimeout(() => {
-          onLogin(user);
+          switchToSignIn();
         }, 1000);
       }
-      
-      setIsLoading(false);
-    }, 1000);
+    } catch (err) {
+      setError('Network error. Please try again.');
+    }
+    setIsLoading(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -259,8 +233,8 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             {isLogin ? 'Welcome Back' : 'Create Account'}
           </h2>
           <p className="text-gray-600">
-            {isLogin 
-              ? 'Sign in to access your WorkLink dashboard' 
+            {isLogin
+              ? 'Sign in to access your WorkLink dashboard'
               : 'Join WorkLink and start connecting today'
             }
           </p>
@@ -313,11 +287,10 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                   <button
                     type="button"
                     onClick={() => setUserType(UserType.CONTRACTOR)}
-                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${
-                      userType === UserType.CONTRACTOR
+                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${userType === UserType.CONTRACTOR
                         ? 'border-blue-600 bg-blue-50 text-blue-600 shadow-sm'
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     <Building className="mx-auto mb-2" size={24} />
                     <span className="text-sm font-medium">Contractor</span>
@@ -326,11 +299,10 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                   <button
                     type="button"
                     onClick={() => setUserType(UserType.WORKER)}
-                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${
-                      userType === UserType.WORKER
+                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${userType === UserType.WORKER
                         ? 'border-blue-600 bg-blue-50 text-blue-600 shadow-sm'
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     <UserIcon className="mx-auto mb-2" size={24} />
                     <span className="text-sm font-medium">Worker</span>
@@ -376,11 +348,10 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                   required
                   value={formData.email}
                   onChange={handleInputChange}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                    formData.email && !validateEmail(formData.email) 
-                      ? 'border-red-300 bg-red-50' 
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${formData.email && !validateEmail(formData.email)
+                      ? 'border-red-300 bg-red-50'
                       : 'border-gray-300'
-                  }`}
+                    }`}
                   placeholder="Enter your email address"
                 />
               </div>
@@ -414,7 +385,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              
+
               {/* Password Strength Indicator for Sign Up */}
               {!isLogin && formData.password && (
                 <div className="mt-2">
@@ -425,13 +396,12 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        passwordStrength.strength === 1 ? 'bg-red-500 w-1/4' :
-                        passwordStrength.strength === 2 ? 'bg-orange-500 w-2/4' :
-                        passwordStrength.strength === 3 ? 'bg-yellow-500 w-3/4' :
-                        passwordStrength.strength === 4 ? 'bg-green-500 w-full' : 'w-0'
-                      }`}
+                    <div
+                      className={`h-2 rounded-full transition-all duration-300 ${passwordStrength.strength === 1 ? 'bg-red-500 w-1/4' :
+                          passwordStrength.strength === 2 ? 'bg-orange-500 w-2/4' :
+                            passwordStrength.strength === 3 ? 'bg-yellow-500 w-3/4' :
+                              passwordStrength.strength === 4 ? 'bg-green-500 w-full' : 'w-0'
+                        }`}
                     ></div>
                   </div>
                 </div>
@@ -453,11 +423,10 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     required
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
-                    className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                      formData.confirmPassword && formData.password !== formData.confirmPassword
+                    className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${formData.confirmPassword && formData.password !== formData.confirmPassword
                         ? 'border-red-300 bg-red-50'
                         : 'border-gray-300'
-                    }`}
+                      }`}
                     placeholder="Confirm your password"
                   />
                   <button
