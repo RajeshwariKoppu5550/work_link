@@ -1,2 +1,26 @@
-node_modules
+# Dependencies
+node_modules/
+
+# Environment variables
 .env
+.env.*
+
+# Logs
+logs/
+*.log
+
+# System
+.DS_Store
+Thumbs.db
+
+# Build
+dist/
+build/
+.tmp/
+
+# IDE settings
+.vscode/
+.idea/
+
+# OS
+*.swp
