@@ -55,21 +55,18 @@ export const ContractorDashboard: React.FC<ContractorDashboardProps> = ({ user, 
     }
   };
 
-  const loadData = () => {
-    const allWorkers = JSON.parse(localStorage.getItem('workerProfiles') || '[]');
-    const allWorkPosts = JSON.parse(localStorage.getItem('workPosts') || '[]');
-    const allRequests = JSON.parse(localStorage.getItem('connectionRequests') || '[]');
-    const allChats = JSON.parse(localStorage.getItem('chats') || '{}');
-    const userSavedWorkers = JSON.parse(localStorage.getItem(`savedWorkers_${user.id}`) || '[]');
-
-    setWorkers(allWorkers);
-    setMyWorkPosts(allWorkPosts.filter((post: WorkPost) => post.contractorId === user.id));
-    setConnectionRequests(allRequests.filter((r: ConnectionRequest) =>
-      r.receiverId === user.id || r.senderId === user.id
-    ));
-    setChats(allChats);
-    setSavedWorkers(userSavedWorkers);
-    calculateUnreadMessages(allChats);
+  const loadData = async () => {
+    try {
+      const token = localStorage.getItem('jwt_token');
+      const response = await fetch('/api/work-posts', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const allWorkPosts = await response.json();
+      setMyWorkPosts(allWorkPosts.filter((post: any) => post.contractorId === user.userId || post.contractorId === user._id));
+      // TODO: Update workers, connectionRequests, chats, savedWorkers to use backend as well
+    } catch (err) {
+      setMyWorkPosts([]);
+    }
   };
 
   const checkForNewMessages = () => {
@@ -244,7 +241,7 @@ Time: ${timestamp} IST`);
       alert('Please fill all required fields');
       return;
     }
-
+    setIsCreatingPost(true);
     try {
       const token = localStorage.getItem('jwt_token');
       const response = await fetch('/api/work-posts', {
@@ -254,34 +251,28 @@ Time: ${timestamp} IST`);
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          title: newPost.title,
-          workType: newPost.workType,
-          pincode: newPost.pincode,
-          description: newPost.description,
-          budget: typeof newPost.budget === 'string' ? newPost.budget : `${newPost.budget.min} - ${newPost.budget.max}`,
-          startDate: newPost.startDate,
-          endDate: newPost.endDate
+          title: String(newPost.title),
+          workType: String(newPost.workType),
+          pincode: String(newPost.pincode),
+          description: String(newPost.description),
+          budget: String(newPost.budget),
+          startDate: newPost.startDate || '',
+          endDate: newPost.endDate || ''
         })
       });
+      const data = await response.json();
       if (!response.ok) {
-        const error = await response.json();
-        alert(error.message || 'Failed to create work post');
+        alert(data.message || 'Failed to create work post');
+        setIsCreatingPost(false);
         return;
       }
-      setNewPost({
-        title: '',
-        workType: '',
-        pincode: '',
-        description: '',
-        budget: '',
-        startDate: '',
-        endDate: ''
-      });
+      setNewPost({ title: '', workType: '', pincode: '', description: '', budget: '', startDate: '', endDate: '' });
       setIsCreatingPost(false);
       loadData();
       alert('Work post created successfully!');
     } catch (err) {
       alert('Error creating work post');
+      setIsCreatingPost(false);
     }
   };
 

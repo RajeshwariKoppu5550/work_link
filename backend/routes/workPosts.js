@@ -13,4 +13,5 @@ router.put('/:id', auth, role('contractor'), workPostController.update);
 // Delete a work post (contractor only)
 router.delete('/:id', auth, role('contractor'), workPostController.remove);
 
+router.post('/interest', auth, workPostController.interest);
 module.exports = router; 

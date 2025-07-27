@@ -19,14 +19,15 @@ exports.create = async (req, res) => {
             workType,
             pincode,
             description,
-            budget,
+            budget: String(budget), // Ensure budget is a string
             startDate,
             endDate
         });
         await post.save();
         res.status(201).json(post);
     } catch (err) {
-        res.status(500).json({ message: 'Server error' });
+        console.error('WorkPost Create Error:', err); // Add error logging
+        res.status(500).json({ message: 'Server error', error: err.message });
     }
 };
 

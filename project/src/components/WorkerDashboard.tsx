@@ -55,21 +55,18 @@ export const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ user, onLogout
     return budgetAmount >= minAmount;
   };
 
-  const loadData = () => {
-    const allWorkPosts = JSON.parse(localStorage.getItem('workPosts') || '[]');
-    const allProfiles = JSON.parse(localStorage.getItem('workerProfiles') || '[]');
-    const allRequests = JSON.parse(localStorage.getItem('connectionRequests') || '[]');
-    const allChats = JSON.parse(localStorage.getItem('chats') || '{}');
-    const userSavedJobs = JSON.parse(localStorage.getItem(`savedJobs_${user.id}`) || '[]');
-
-    setWorkPosts(allWorkPosts.filter((post: WorkPost) => post.status === 'active'));
-    setMyProfiles(allProfiles.filter((p: any) => p.userId === user.id));
-    setConnectionRequests(allRequests.filter((r: ConnectionRequest) =>
-      r.receiverId === user.id || r.senderId === user.id
-    ));
-    setChats(allChats);
-    setSavedJobs(userSavedJobs);
-    calculateUnreadMessages(allChats);
+  const loadData = async () => {
+    try {
+      const token = localStorage.getItem('jwt_token');
+      const response = await fetch('/api/work-posts', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const allWorkPosts = await response.json();
+      setWorkPosts(allWorkPosts.filter((post: any) => post.status === 'active'));
+      // TODO: Update profiles, requests, chats, savedJobs to use backend as well
+    } catch (err) {
+      setWorkPosts([]);
+    }
   };
 
   const checkForNewMessages = () => {
@@ -926,8 +923,8 @@ Time: ${timestamp} IST`);
                   >
                     <div
                       className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${message.senderId === user.id
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-200 text-gray-800'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-800'
                         }`}
                     >
                       <p>{message.message}</p>
@@ -1009,8 +1006,8 @@ Time: ${timestamp} IST`);
                   key={id}
                   onClick={() => setActiveTab(id)}
                   className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center relative ${activeTab === id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                 >
                   <Icon className="w-4 h-4 mr-2" />
