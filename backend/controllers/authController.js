@@ -3,8 +3,11 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 exports.register = async (req, res) => {
+    console.log(req.body);
+    console.log("register");
     try {
         const { name, email, password, role } = req.body;
+        console.log(req.body);
         if (!name || !email || !password || !role) {
             return res.status(400).json({ message: 'All fields are required' });
         }
@@ -26,11 +29,11 @@ exports.login = async (req, res) => {
         const { email, password } = req.body;
         const user = await User.findOne({ email });
         if (!user) {
-            return res.status(400).json({ message: 'Invalid credentials' });
+            return res.status(400).json({ message: 'Wrong email' });
         }
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(400).json({ message: 'Invalid credentials' });
+            return res.status(400).json({ message: 'Wrong password' });
         }
         const token = jwt.sign(
             { userId: user._id, role: user.role, name: user.name },

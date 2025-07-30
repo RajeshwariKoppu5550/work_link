@@ -161,6 +161,13 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             role: userType === UserType.CONTRACTOR ? 'contractor' : 'worker'
           })
         });
+        console.log("Payload being sent:", {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          role: userType === UserType.CONTRACTOR ? 'contractor' : 'worker'
+        });
+
         const data = await response.json();
         if (!response.ok) {
           setError(data.message || 'Registration failed');
@@ -288,8 +295,8 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     type="button"
                     onClick={() => setUserType(UserType.CONTRACTOR)}
                     className={`p-4 rounded-xl border-2 transition-all duration-200 ${userType === UserType.CONTRACTOR
-                        ? 'border-blue-600 bg-blue-50 text-blue-600 shadow-sm'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      ? 'border-blue-600 bg-blue-50 text-blue-600 shadow-sm'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                       }`}
                   >
                     <Building className="mx-auto mb-2" size={24} />
@@ -300,8 +307,8 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     type="button"
                     onClick={() => setUserType(UserType.WORKER)}
                     className={`p-4 rounded-xl border-2 transition-all duration-200 ${userType === UserType.WORKER
-                        ? 'border-blue-600 bg-blue-50 text-blue-600 shadow-sm'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      ? 'border-blue-600 bg-blue-50 text-blue-600 shadow-sm'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                       }`}
                   >
                     <UserIcon className="mx-auto mb-2" size={24} />
@@ -349,8 +356,8 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                   value={formData.email}
                   onChange={handleInputChange}
                   className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${formData.email && !validateEmail(formData.email)
-                      ? 'border-red-300 bg-red-50'
-                      : 'border-gray-300'
+                    ? 'border-red-300 bg-red-50'
+                    : 'border-gray-300'
                     }`}
                   placeholder="Enter your email address"
                 />
@@ -398,9 +405,9 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className={`h-2 rounded-full transition-all duration-300 ${passwordStrength.strength === 1 ? 'bg-red-500 w-1/4' :
-                          passwordStrength.strength === 2 ? 'bg-orange-500 w-2/4' :
-                            passwordStrength.strength === 3 ? 'bg-yellow-500 w-3/4' :
-                              passwordStrength.strength === 4 ? 'bg-green-500 w-full' : 'w-0'
+                        passwordStrength.strength === 2 ? 'bg-orange-500 w-2/4' :
+                          passwordStrength.strength === 3 ? 'bg-yellow-500 w-3/4' :
+                            passwordStrength.strength === 4 ? 'bg-green-500 w-full' : 'w-0'
                         }`}
                     ></div>
                   </div>
@@ -424,8 +431,8 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
                     className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${formData.confirmPassword && formData.password !== formData.confirmPassword
-                        ? 'border-red-300 bg-red-50'
-                        : 'border-gray-300'
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-300'
                       }`}
                     placeholder="Confirm your password"
                   />

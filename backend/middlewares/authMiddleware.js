@@ -1,6 +1,12 @@
 const jwt = require('jsonwebtoken');
 
 module.exports = (req, res, next) => {
+    app.use((req, res, next) => {
+        console.log(`[${req.method}] ${req.url}`);
+        next();
+    });
+
+    app.use(express.json());
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ message: 'No token provided' });
