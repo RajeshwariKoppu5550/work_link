@@ -10,6 +10,7 @@ exports.list = async (req, res) => {
 };
 
 exports.create = async (req, res) => {
+    console.log(res.body);
     try {
         const { name, skill, experience, pincode, expectedWage, description, mobile } = req.body;
         const profile = new WorkerProfile({
